@@ -17,6 +17,8 @@ function AccountCreator(session, type) {
     if(!_.contains(['phone', 'email'], type))
         throw new Error("AccountCreator class needs either phone or email as type")
     this.type = type;
+
+    this.waterfallId = Helpers.generateUUID();
 }
 
 
@@ -59,7 +61,13 @@ AccountCreator.prototype.checkUsername = function (username) {
     return new Request(this.session)
         .setMethod('POST')
         .setResource('checkUsername')
-        .setData({username: username})
+        .setData({
+            username: username,
+            //ADDED
+            '__uuid': this.session.uuid || undefined,
+            '_csrftoken': 'missing'
+            //ADDED_END
+        })
         .signPayload()
         .send();
 };
@@ -70,7 +78,13 @@ AccountCreator.prototype.usernameSuggestions = function(username) {
         .setMethod('POST')
         .setResource('usernameSuggestions')
         .setData({
-            name: username
+            name: username,
+            //ADDED
+            '__uuid': this.session.uuid || undefined,
+            '_csrftoken': 'missing',
+            email: this.email,
+            waterfall_id: Helpers.generateUUID()
+
         })
         .signPayload()
         .send();
@@ -217,8 +231,9 @@ AccountPhoneCreator.prototype.create = function() {
                     first_name: that.name,
                     force_sign_up_code:"",
                     qs_stamp: "",
-                    phone_id: Helpers.generateUUID(),
-                    guid: Helpers.generateUUID(),
+                    phone_id: that.session.device.phoneId || Helpers.generateUUID(),
+                    guid: that.session.uuid || Helpers.generateUUID(),
+                    //adid: that.session.device.adid
                     waterfall_id: Helpers.generateUUID()
                 })
                 .signPayload()
@@ -256,7 +271,10 @@ AccountEmailCreator.prototype.checkEmail = function () {
         .setResource('checkEmail')
         .setData({
             email: this.email,
-            qe_id: Helpers.generateUUID()
+            qe_id: Helpers.generateUUID(),
+            //ADDED
+            waterfall_id: Helpers.generateUUID(),
+            '_csrftoken': 'missing',
         })
         .signPayload()
         .send();     
@@ -288,14 +306,17 @@ AccountEmailCreator.prototype.create = function() {
         .setMethod('POST')
         .setResource('registrationCreate')
         .setData({
-            phone_id: uuid,
+            phone_id: that.session.device.phoneId || uuid,
+            device_id: that.session.device.id,
             username: that.username,
             first_name: that.name,
-            guid: guid,
+            guid: that.session.uuid || guid,
             email: that.email,
             force_sign_up_code: "",
             qs_stamp: "",
-            password: that.password
+            password: that.password,
+            waterfall_id: Helpers.generateUUID(),
+            //csrftoken ????
         })
         .signPayload()
         .send()
