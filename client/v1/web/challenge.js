@@ -318,7 +318,7 @@ ButtonVerificationChallenge.prototype.click = function() {
             'Content-Type': 'application/x-www-form-urlencoded',
             'Origin': ORIGIN,
             'Connection': 'keep-alive',
-            'User-Agent': iPhoneUserAgent({version: that.session.device.version}),
+            'User-Agent': that.session.device.userAgent(),
             'Referer': that.error.url
         })
         .setBodyType('form')
