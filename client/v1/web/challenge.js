@@ -113,11 +113,33 @@ PhoneVerificationChallenge.prototype.phone = function(phone) {
                 "Instagram not accpetion the number",
                 Exceptions.NotPossibleToResolveChallenge.CODE.NOT_ACCEPTING_NUMBER
             );
+
+        if(response.statusCode == 200 && response.body.indexOf('instagram://checkpoint/dismiss') !== -1) {
+            return true;
+        }
+
+
         if(response.body.indexOf('incorrect') !== -1)
             throw new Exceptions.NotPossibleToResolveChallenge(
                 "Probably incorrect number",
                 Exceptions.NotPossibleToResolveChallenge.CODE.INCORRECT_NUMBER
             );
+
+        var verifyByPhoneValue = new RegExp(PHONE_FIELD_REGEXP).exec(response.body);
+
+        if (verifyByPhoneValue) {
+            this.verifyByValue = verifyByPhoneValue[1];
+            return that.phone();
+        }
+
+        var insertedPhoneNumber = new RegExp(PHONE_ENTERED_FIELD_REGEXP).exec(response.body);
+
+        if (insertedPhoneNumber) {
+            this.phoneInserted = insertedPhoneNumber[1];
+            return that.phone();
+        }
+
+
         if(response.body.indexOf('security_code') === -1)
             throw new Exceptions.NotPossibleToResolveChallenge();
         return that;
