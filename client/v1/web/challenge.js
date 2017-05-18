@@ -71,17 +71,15 @@ exports.ChoiseVerificationChallenge = ChoiseVerificationChallenge;
 
 ChoiseVerificationChallenge.prototype.choice = function(choice) {
     var that = this;
-  //  that.error.url = that.error.url.replace('i.instagram.com','www.instagram.com');
+    that.error.url = that.error.url.replace('i.instagram.com','www.instagram.com');
 
     return new WebRequest(that.session)
         .setMethod('POST')
         .setUrl(that.error.url)
         .setHeaders({
-           // 'Host': CONSTANTS.WEB_HOSTNAME,
-           'Host': CONSTANTS.HOSTNAME,
+           'Host': CONSTANTS.WEB_HOSTNAME,
             'Referer': that.error.url,
-            //    'Origin': ORIGIN
-           'Origin': 'https://i.instagram.com',
+             'Origin': ORIGIN,
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Accept-Language': 'en-us',
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -105,16 +103,15 @@ ChoiseVerificationChallenge.prototype.choice = function(choice) {
 
 ChoiseVerificationChallenge.prototype.code = function (code) {
     var that = this;
+    that.error.url = that.error.url.replace('i.instagram.com','www.instagram.com');
 
     return new WebRequest(that.session)
         .setMethod('POST')
         .setUrl(that.error.url)
         .setHeaders({
-            // 'Host': CONSTANTS.WEB_HOSTNAME,
-            'Host': CONSTANTS.HOSTNAME,
+            'Host': CONSTANTS.WEB_HOSTNAME,
             'Referer': that.error.url,
-            //    'Origin': ORIGIN
-            'Origin': 'https://i.instagram.com',
+            'Origin': ORIGIN,
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Accept-Language': 'en-us',
             'Content-Type': 'application/x-www-form-urlencoded',
