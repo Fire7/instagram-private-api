@@ -48,6 +48,106 @@ Object.defineProperty(Challenge.prototype, "error", {
 });
 
 
+var ChoiseVerificationChallenge = function (session, type, checkpointError, body) {
+    Challenge.apply(this, arguments);
+
+    var regexp = new RegExp(/<button.*name="choice".*value="(.*)".*>(.*)<\/button>/igm),
+        choices = [],
+        result;
+
+    while (result = regexp.exec(body)) {
+        choices.push({
+            value: result[1],
+            text: result[2]
+        });
+    }
+
+    this.choices = choices;
+
+};
+util.inherits(ChoiseVerificationChallenge, Challenge);
+exports.ChoiseVerificationChallenge = ChoiseVerificationChallenge;
+
+
+ChoiseVerificationChallenge.prototype.choice = function(choice) {
+    var that = this;
+  //  that.error.url = that.error.url.replace('i.instagram.com','www.instagram.com');
+
+    return new WebRequest(that.session)
+        .setMethod('POST')
+        .setUrl(that.error.url)
+        .setHeaders({
+           // 'Host': CONSTANTS.WEB_HOSTNAME,
+           'Host': CONSTANTS.HOSTNAME,
+            'Referer': that.error.url,
+            //    'Origin': ORIGIN
+           'Origin': 'https://i.instagram.com',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-us',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Connection': 'keep-alive',
+            'User-Agent': that.session.device.userAgent(),
+            'Accept-Encoding':	'gzip, deflate'
+        })
+        .setBodyType('form')
+        .setData({
+            choice: choice || 0,
+            csrfmiddlewaretoken: that.session.CSRFToken
+        })
+        .removeHeader('x-csrftoken')
+        .send({followRedirect: false})
+        .then(function(response) {
+            if(response.statusCode !== 200)
+                throw new Exceptions.NotPossibleToResolveChallenge();
+            return that;
+        })
+};
+
+ChoiseVerificationChallenge.prototype.code = function (code) {
+    var that = this;
+
+    return new WebRequest(that.session)
+        .setMethod('POST')
+        .setUrl(that.error.url)
+        .setHeaders({
+            // 'Host': CONSTANTS.WEB_HOSTNAME,
+            'Host': CONSTANTS.HOSTNAME,
+            'Referer': that.error.url,
+            //    'Origin': ORIGIN
+            'Origin': 'https://i.instagram.com',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-us',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Connection': 'keep-alive',
+            'User-Agent': that.session.device.userAgent(),
+            'Accept-Encoding':	'gzip, deflate'
+        })
+        .setBodyType('form')
+        .setData({
+            security_code: code,
+            csrfmiddlewaretoken: that.session.CSRFToken
+        })
+        .removeHeader('x-csrftoken')
+        .send({followRedirect: false})
+        .then(function(response) {
+            if(response.statusCode != 200)
+                throw new Exceptions.NotPossibleToResolveChallenge('Invalid status code: '+response.statusCode);
+            if(response.body.indexOf('has been verified') > -1){
+                return that;
+            }else if(response.body.indexOf('check the code') > -1){
+                throw new Exceptions.NotPossibleToResolveChallenge(
+                    'Incorrect code',
+                    Exceptions.NotPossibleToResolveChallenge.INCORRECT_CODE
+                );
+            }else if(response.body.indexOf('something wrong sending') > -1){
+                throw new Exceptions.NotPossibleToResolveChallenge('Something went wrong while sending code');
+            }else{
+                throw new Exceptions.NotPossibleToResolveChallenge();
+            }
+        })
+}
+
+
 
 var PhoneVerificationChallenge = function(session, type, checkpointError, body) {
     Challenge.apply(this, arguments);
@@ -321,6 +421,9 @@ EmailVerificationChallenge.prototype.confirmate = function(code) {
 };
 
 var ButtonVerificationChallenge = function(session, type, checkpointError, body) {
+    this.choice = !!new RegExp(/<button.*name="choice".*>It Was Me<\/button>/igm).exec(body);
+
+
     Challenge.apply(this, arguments);
 }
 
@@ -329,7 +432,21 @@ exports.ButtonVerificationChallenge = ButtonVerificationChallenge;
 
 ButtonVerificationChallenge.prototype.click = function() {
     var that = this;
-    that.error.url = that.error.url.replace('i.instagram.com','www.instagram.com')
+    that.error.url = that.error.url.replace('i.instagram.com','www.instagram.com');
+    var data;
+
+    if (this.choice) {
+        data = {
+            choice: '0',
+            csrfmiddlewaretoken: that.session.CSRFToken
+        };
+    } else {
+        data = {
+            approve: "It Was Me",
+            csrfmiddlewaretoken: that.session.CSRFToken
+        };
+    }
+
     return new WebRequest(that.session)
         .setMethod('POST')
         .setUrl(that.error.url)
@@ -345,10 +462,7 @@ ButtonVerificationChallenge.prototype.click = function() {
         })
         .setBodyType('form')
         .removeHeader('x-csrftoken') // we actually sending this as post param
-        .setData({
-            approve: "It Was Me",
-            csrfmiddlewaretoken: that.session.CSRFToken
-        })
+        .setData(data)
         .send({followRedirect: false})
         .then(function(response) {
             if(response.statusCode == 200 && response.body.indexOf('Your account has been verified') !== -1) {
@@ -445,6 +559,10 @@ Challenge.resolve = function(checkpointError) {
         //Thx to @generictitle for ButtonVerificationChallenge
         if(response.body.indexOf('It Was Me') !== -1)
             return new ButtonVerificationChallenge(session, 'button', checkpointError, response.body);
+
+        if (response.body.indexOf('Verify Your Account') !== -1)
+            return new ChoiseVerificationChallenge(session, 'choice', checkpointError, response.body);
+
         //Looks like unfinished challenge, let's reset it
         if(response.body.indexOf('security_code') !== -1){
             //Resetting challenge.
