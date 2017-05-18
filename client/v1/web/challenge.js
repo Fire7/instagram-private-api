@@ -139,7 +139,8 @@ ChoiseVerificationChallenge.prototype.code = function (code) {
             }else if(response.body.indexOf('something wrong sending') > -1){
                 throw new Exceptions.NotPossibleToResolveChallenge('Something went wrong while sending code');
             }else{
-                throw new Exceptions.NotPossibleToResolveChallenge();
+                //throw new Exceptions.NotPossibleToResolveChallenge();
+                return that;
             }
         })
 }
@@ -375,7 +376,9 @@ EmailVerificationChallenge.prototype.code = function(code){
             }else if(response.body.indexOf('something wrong sending') > -1){
                 throw new Exceptions.NotPossibleToResolveChallenge('Something went wrong while sending code');
             }else{
-                throw new Exceptions.NotPossibleToResolveChallenge();
+
+                return that;
+                //throw new Exceptions.NotPossibleToResolveChallenge();
             }
 
         })
@@ -508,7 +511,7 @@ ButtonVerificationChallenge.prototype.confirmate = function(code) {
         .send({followRedirect: false, qs: {next: 'instagram://checkpoint/dismiss'}})
         .then(function(response) {
 
-            if(response.statusCode == 200 && response.body.indexOf('instagram://checkpoint/dismiss') !== -1)
+            if(response.statusCode == 200 && response.body.indexOf('checkpoint/dismiss') !== -1)
                 return true;
             throw new Exceptions.NotPossibleToResolveChallenge();
         })
@@ -560,6 +563,8 @@ Challenge.resolve = function(checkpointError) {
         if (response.body.indexOf('Verify Your Account') !== -1)
             return new ChoiseVerificationChallenge(session, 'choice', checkpointError, response.body);
 
+        console.log ('undefined challenge');
+        console.log (response.body);
         //Looks like unfinished challenge, let's reset it
         if(response.body.indexOf('security_code') !== -1){
             //Resetting challenge.
